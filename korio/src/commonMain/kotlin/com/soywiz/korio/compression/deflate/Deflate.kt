@@ -6,10 +6,12 @@ import com.soywiz.korio.compression.util.*
 import com.soywiz.korio.experimental.*
 import com.soywiz.korio.stream.*
 import kotlin.math.*
+import kotlin.native.concurrent.ThreadLocal
 
 expect fun Deflate(windowBits: Int): CompressionMethod
 
-val Deflate: CompressionMethod by lazy { Deflate(15) }
+@ThreadLocal
+val Deflate: CompressionMethod = Deflate(15)
 
 @UseExperimental(KorioExperimentalApi::class)
 open class DeflatePortable(val windowBits: Int) : CompressionMethod {

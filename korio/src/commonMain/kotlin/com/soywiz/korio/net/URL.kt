@@ -50,6 +50,7 @@ data class URL private constructor(
 		}
 		if (userInfo != null) out.append("$userInfo@")
 		if (host != null) out.append(host)
+		if (port != 80 && port != 443 && port != -1) out.append(":$port")
 		out.append(path)
 		if (query != null) out.append("?$query")
 		if (fragment != null) out.append("#$fragment")
@@ -95,7 +96,16 @@ data class URL private constructor(
 					val (nonFragment, fragment) = nonScheme.split('#', limit = 2).run { first() to getOrNull(1) }
 					val (nonQuery, query) = nonFragment.split('?', limit = 2).run { first() to getOrNull(1) }
 					val (authority, path) = nonQuery.split('/', limit = 2).run { first() to getOrNull(1) }
-					val (host, userInfo) = authority.split('@', limit = 2).reversed().run { first() to getOrNull(1) }
+					val (host, port, userInfo) = authority.split('@', limit = 2).reversed().run {
+						val first = first()
+						if (first.contains(":")) {
+							val second = first.split(":").last()
+							Triple(first.split(":").first(), second.toInt(), getOrNull(1))
+						} else {
+							Triple(first, DEFAULT_PORT, getOrNull(1))
+						}
+					}
+
 					URL(
 						opaque = !isHierarchical,
 						scheme = scheme,
@@ -103,7 +113,8 @@ data class URL private constructor(
 						host = host.takeIf { it.isNotEmpty() },
 						path = if (path != null) "/$path" else "",
 						query = query,
-						fragment = fragment
+						fragment = fragment,
+						port = port
 					)
 				}
 				else -> {
@@ -127,7 +138,13 @@ data class URL private constructor(
 		fun resolve(base: String, access: String): String = when {
 			isAbsolute(access) -> access
 			access.startsWith("/") -> URL(base).copy(path = access).fullUrl
-			else -> URL(base).run { copy(path = "/${("${path.substringBeforeLast('/')}/$access").pathInfo.normalize().trimStart('/')}").fullUrl }
+			else -> URL(base).run {
+				copy(
+					path = "/${("${path.substringBeforeLast('/')}/$access").pathInfo.normalize().trimStart(
+						'/'
+					)}"
+				).fullUrl
+			}
 		}
 
 		fun decodeComponent(s: String, charset: Charset = UTF8, formUrlEncoded: Boolean = false): String {

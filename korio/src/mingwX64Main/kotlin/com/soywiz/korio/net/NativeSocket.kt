@@ -13,9 +13,14 @@ class NativeSocket private constructor(internal val sockfd: SOCKET, private var 
 		}
 
 		operator fun invoke(): NativeSocket {
-			val socket = platform.windows.socket(platform.windows.AF_INET, platform.windows.SOCK_STREAM, platform.windows.IPPROTO_TCP)
+			val socket = platform.windows.socket(
+				platform.windows.AF_INET,
+				platform.windows.SOCK_STREAM,
+				platform.windows.IPPROTO_TCP
+			)
 			return NativeSocket(socket, Endpoint(IP(0, 0, 0, 0), 0))
 		}
+
 		suspend fun connect(host: String, port: Int) = NativeSocket().apply { connect(host, port) }
 		suspend fun bound(host: String, port: Int) = NativeSocket().apply { bind(host, port) }
 		//suspend fun listen(host: String, port: Int) = NativeSocket().listen(host, port)
@@ -85,10 +90,18 @@ class NativeSocket private constructor(internal val sockfd: SOCKET, private var 
 	fun connect(host: String, port: Int) {
 		memScoped {
 			val ip = IP.fromHost(host)
-			val addr = allocArray<sockaddr_in>(1)
-			addr.set(ip, port)
-			//val connected = platform.windows.connect(sockfd, addr as CValuesRef<sockaddr>?, sockaddr_in.size.convert())
-			val connected = platform.windows.connect(sockfd, addr.uncheckedCast(), sockaddr_in.size.convert())
+			val addr = allocArray<LPADDRINFOVar>(1)
+			val alloc = alloc<platform.windows.addrinfo>()
+			alloc.ai_family = AF_INET
+			alloc.ai_socktype = SOCK_STREAM
+			alloc.ai_protocol = IPPROTO_TCP
+			println(host)
+			println(port)
+			val res = platform.windows.getaddrinfo(host, port.toString(), alloc.ptr, addr)
+			checkErrors("getaddrinfo")
+			val info = addr[0]!!.pointed
+			val inetaddr = info.ai_addr!!
+			val connected = platform.windows.connect(sockfd, inetaddr.uncheckedCast(), sockaddr_in.size.convert())
 			checkErrors("connect")
 			endpoint = Endpoint(ip, port)
 			setSocketBlockingEnabled(false)

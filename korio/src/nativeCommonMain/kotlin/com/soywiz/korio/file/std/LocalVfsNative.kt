@@ -25,24 +25,33 @@ import kotlinx.cinterop.*
 import platform.posix.*
 import kotlin.native.concurrent.*
 import com.soywiz.korio.lang.Environment
-
-val tmpdir: String by lazy { Environment["TMPDIR"] ?: Environment["TEMP"] ?: Environment["TMP"] ?: "/tmp" }
-
+@ThreadLocal
+val tmpdir: String = Environment["TMPDIR"] ?: Environment["TEMP"] ?: Environment["TMP"] ?: "/tmp"
+@ThreadLocal
 var customCwd: String? = null
-val cwd: String by lazy { customCwd ?: com.soywiz.korio.nativeCwd() }
+val cwd: String = customCwd ?: com.soywiz.korio.nativeCwd()
+@ThreadLocal
+actual val applicationDataVfs: VfsFile = localVfs(cwd)
+@ThreadLocal
+actual val resourcesVfs: VfsFile = applicationDataVfs.jail()
+@ThreadLocal
+actual val rootLocalVfs: VfsFile = localVfs(cwd)
+@ThreadLocal
+actual val applicationVfs: VfsFile = localVfs(cwd)
 
-actual val resourcesVfs: VfsFile by lazy { applicationDataVfs.jail() }
-actual val rootLocalVfs: VfsFile by lazy { localVfs(cwd) }
-actual val applicationVfs: VfsFile by lazy { localVfs(cwd) }
-actual val applicationDataVfs: VfsFile by lazy { localVfs(cwd) }
-actual val cacheVfs: VfsFile by lazy { MemoryVfs() }
-actual val externalStorageVfs: VfsFile by lazy { localVfs(cwd) }
-actual val userHomeVfs: VfsFile by lazy { localVfs(cwd) }
-actual val tempVfs: VfsFile by lazy { localVfs(tmpdir) }
+@ThreadLocal
+actual val cacheVfs: VfsFile = MemoryVfs()
+@ThreadLocal
+actual val externalStorageVfs: VfsFile = localVfs(cwd)
+@ThreadLocal
+actual val userHomeVfs: VfsFile = localVfs(cwd)
+@ThreadLocal
+actual val tempVfs: VfsFile = localVfs(tmpdir)
 
 actual fun localVfs(path: String): VfsFile = LocalVfsNative()[path]
 
-private val IOWorker by lazy { Worker.start() }
+@ThreadLocal
+private val IOWorker = Worker.start()
 
 internal suspend fun fileOpen(name: String, mode: String): CPointer<FILE>? {
 	data class Info(val name: String, val mode: String)
