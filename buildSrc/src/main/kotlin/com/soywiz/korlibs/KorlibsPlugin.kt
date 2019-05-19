@@ -24,12 +24,12 @@ open class BaseKorlibsPlugin(val nativeEnabled: Boolean, val androidEnabled: Boo
 
         // Platforms
         configureTargetCommon()
-        configureTargetAndroid()
+//        configureTargetAndroid()
         if (nativeEnabled) {
             configureTargetNative()
         }
-        configureTargetJavaScript()
-        configureTargetJVM()
+//        configureTargetJavaScript()
+//        configureTargetJVM()
 
         // Publishing
         configurePublishing()
@@ -68,7 +68,7 @@ class KorlibsExtension(val project: Project, val nativeEnabled: Boolean, val and
     val JS_TARGETS = listOf("js")
     val JVM_TARGETS = listOf("jvm")
     val COMMON_TARGETS = listOf("metadata")
-    val ALL_TARGETS = ALL_ANDROID_TARGETS + JS_TARGETS + JVM_TARGETS + COMMON_TARGETS + ALL_NATIVE_TARGETS
+    val ALL_TARGETS = ALL_ANDROID_TARGETS + JS_TARGETS + JVM_TARGETS + ALL_NATIVE_TARGETS
 
     @JvmOverloads
     fun dependencyMulti(group: String, name: String, version: String, targets: List<String> = ALL_TARGETS, suffixCommonRename: Boolean = false, androidIsJvm: Boolean = false) = project {
